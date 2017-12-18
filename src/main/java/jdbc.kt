@@ -5,6 +5,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
 
+//达梦数据库基本参数及配置
 const val driver = "dm.jdbc.driver.DmDriver"
 const val url = "jdbc:dm://192.168.200.64:5678"
 const val username="SYSDBA"
