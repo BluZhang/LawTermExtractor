@@ -35,7 +35,8 @@ fun main(args: Array<String>) {
 //    countDictUsed()
 //    modeDetection()
 //    termOmmit()
-    modelPOSSeq()
+//    modelPOSSeq()
+    createTransferMap()
 }
 
 //识别术语可能存在的词性序列模式
@@ -106,19 +107,16 @@ fun modelPOSSeq() {
                     sb.append("_$s")
                 }
             }
-            File("D:/term/posDir/$sb.txt").appendText("$line.s\n")
+            File("D:/term/posDir/${sb.toString().substring(1)}.txt").appendText("$line.s\n")
             map.put(sb.toString(), map.getOrDefault(sb.toString(), 0) + 1)
         }
     }
-    val file = File("D:/term/modelSeq.txt")
+    val file = File("D:/term/modelSeqSorted.txt")
     file.delete()
     file.createNewFile()
     val set = map.entries.sortedByDescending { it.value }
-    val totalSum = set.sumBy { it.value }
-    var sum = 0
-    set.forEach {
-        sum += it.value
-        file.appendText("${it.key.substring(1)} ${it.value} ${100 * sum / totalSum}%\n")
+    set.sortedBy { it.key }.forEach {
+        file.appendText("${it.key.substring(1)}\t${it.value}\n")
     }
 }
 
@@ -270,8 +268,39 @@ fun itemWrite() {
     conn!!.close()
 }
 
+var head: Node = Node("start", mutableMapOf<String, Node>())
+
+//创建术语序列的状态转移图
+fun createTransferMap() {
+    File("D:/term/modelSeqSorted.txt").forEachLine {
+        val splits = it.split("\t")
+        var node = head
+        splits[0].split("_").forEach { it1 ->
+            node.childrenMap.put(it1, node.childrenMap.getOrDefault(it1, Node(it1, mutableMapOf<String, Node>())))
+            node = node.childrenMap.get(it1)!!
+        }
+        node.endNum = splits[1].toInt()
+    }
+    backIterNode(head)
+    println(head.totalSubNum)
+}
+
+fun backIterNode(node: Node) {
+    node.childrenMap.forEach { key, value ->
+        backIterNode(value)
+    }
+    node.totalSubNum = node.endNum + node.childrenMap.values.sumBy { it.totalSubNum }
+}
+
 //创建数据库连接
 fun createConnection(): Unit {
     Class.forName(driver)
     conn = DriverManager.getConnection(url, username, password)
 }
+
+/*
+ * str：表示该节点的词性
+ * endNum：表示以该节点结束的词性序列的数量
+ * totalSubNum：表示以该节点以及该节点的子节点等所有词性序列的数量总数
+ */
+class Node(val str: String, val childrenMap: MutableMap<String, Node>, var endNum: Int = 0, var totalSubNum: Int = 0)
