@@ -4,6 +4,8 @@ import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
+import java.util.*
+import kotlin.collections.ArrayList
 
 //达梦数据库基本参数及配置
 const val driver = "dm.jdbc.driver.DmDriver"
@@ -29,55 +31,89 @@ val setAll: MutableSet<String> = mutableSetOf()
 fun main(args: Array<String>) {
 //    createConnection()
 //    itemWrite()
-//    itemRead()
-    prepareDict()
-    countDictUsed()
+//    prepareDict()
+//    countDictUsed()
+    modeDetection()
+//    termOmmit()
 }
 
-//比较加入词典和未加入词典前后的分词信息
-fun itemRead() {
-    val dir = File("D:/term/$dictDir")
-    val fileList = dir.listFiles()
-    var count = 0
-    for(i in 1..fileList.size) {
-        //读取用户词典文件夹内的文件
-        val file1 = File("D:/term/$dictDir/$i.txt")
-        //读取非用户词典文件夹内的文件
-        val file2 = File("D:/term/$noDictDir/$i.txt")
-        println(file1.absolutePath)
-        val jsonObj1 = JSONObject.fromObject(file1.readText())
-        val jsonObj2 = JSONObject.fromObject(file2.readText())
-        val jsonArr1 = jsonObj1.getJSONArray("arr")
-        val jsonArr2 = jsonObj2.getJSONArray("arr")
-        for(j in 0..(jsonArr1.size - 1)) {
-            //获取加入用户词典前后，针对同一法条的不同的分词结果
-            val jsonObj12 = jsonArr1.getJSONObject(j)
-            val jsonObj22 = jsonArr2.getJSONObject(j)
-            //获取法条的id
-            var id1 = 1
-            jsonObj12.keys().forEach { id1 = it.toString().toInt() }
-            var id2 = 1
-            jsonObj22.keys().forEach { id2 = it.toString().toInt() }
-            //获取的法条的id应当保持一致
-            assert(id1 == id2)
-            //获取同一法条分词前后的实际分词结果
-            val jsonArr12 = jsonObj12.getJSONArray("$id1")
-            val jsonArr22 = jsonObj22.getJSONArray("$id2")
-            //统计分词结果相同的法条的数目，也就是用户词典并未产生任何效果的法条的数目
-            if(jsonArr12.toString().equals(jsonArr22.toString())) {
-                count++
+//识别术语可能存在的词性序列模式
+fun modeDetection() {
+    val dir = File("D:/term/dirDictChanged")
+    val resDir = File("D:/term/dirDictSeq")
+    resDir.deleteRecursively()
+    resDir.mkdir()
+    dir.listFiles().forEach {
+        val termName = it.name.substringBefore(".")
+        val set = mutableSetOf<String>()
+//        File("D:/term/dirDictChanged/行政审判.txt").forEachLine { line ->
+        it.forEachLine { line ->
+            val len1List = mutableListOf<Int>()
+            var len = 0;
+            val line1 = line.replace("[","").replace("]","")
+            val sb = StringBuilder()
+            line1.split(",").forEachIndexed { index, s ->
+                if(index % 2 == 0) {
+                    //截止s之前的字符串序列的长度之和
+                    len1List.add(len)
+                    val str = s.replace("\"", "")
+                    len += str.length
+                    sb.append(str)
+                }
+            }
+//            val termIndex = sb.toString().indexOf("行政审判")
+            val termIndex = sb.toString().indexOf(termName)
+            var startIndex = 0
+            var endIndex = 0
+            len1List.forEachIndexed { index, i ->
+                if(i == termIndex) {
+                    startIndex = index
+                }
+                if(i == termIndex + termName.length) {
+                    endIndex = index - 1
+                }
+            }
+            val list = mutableListOf<String>()
+            line1.split(",").forEachIndexed { index, s ->
+                if(index >= startIndex * 2 && index <= endIndex * 2 + 1) {
+                    list.add(s.replace("\"", ""))
+                }
+            }
+            val list1 = list.filterIndexed { index, s ->  index % 2 == 0 }
+            val resStr = list1.joinToString("","","")
+            if(resStr.equals(termName)) {
+                set.add(list.toString())
             }
         }
+        set.forEach { File("D:/term/dirDictSeq/$termName.txt").appendText("$it\n") }
     }
-    println("未产生效果的分词结果数量: $count")
+}
+
+
+//由于出现了提取前后的术语数量不统一，这里找到不统一的术语集合
+fun termOmmit() {
+    val beforeDir = File("D:/term/dirDictChanged")
+    val afterDir = File("D:/term/dirDictSeq")
+    val beforeList = beforeDir.listFiles().map { it.name.substringBefore(".") }
+    val afterList = afterDir.listFiles().map { it.name.substringBefore(".") }
+    val beforeArrList = ArrayList<String>()
+    beforeArrList.addAll(beforeList)
+    val afterArrList = ArrayList<String>()
+    afterArrList.addAll(afterList)
+    beforeArrList.removeAll(afterArrList)
+    beforeArrList.forEach { println(it) }
+
 }
 
 //查找用户词典中被使用过的用户词
 fun countDictUsed() {
     val dir = File("D:/term/$dictDir")
     val fileList = dir.listFiles()
-    //存储被使用过的用户词的数量
+    //存储用户词典使得分词效果发生了改变的词条数量
     var count = 0
+    val dirDictChanged = "D:/term/dirDictChanged"
+    File(dirDictChanged).deleteRecursively()
+    File(dirDictChanged).mkdir()
     for(i in 1..fileList.size) {
         val file1 = File("D:/term/$dictDir/$i.txt")
         val file2 = File("D:/term/$noDictDir/$i.txt")
@@ -111,10 +147,17 @@ fun countDictUsed() {
                             //如果用户词只在加入用户词典之后的粉刺结果中出现，则将其加入mapOccur当中`
                             if(!flag) {
                                 mapOccur.put(str, mapOccur.getOrDefault(str, 0) + 1)
+                                val file = File("${dirDictChanged}/${str}.txt")
+                                if(!file.exists()) {
+                                    file.createNewFile()
+                                }
+//                                file.appendText("$jsonArr12\n")
+                                file.appendText("$jsonArr22\n")
                             }
                         }
                     }
                 }
+                count++
             }
         }
     }
@@ -132,6 +175,7 @@ fun countDictUsed() {
     dictList.forEach {
         output.appendText("${it.first}  ${it.second}\n")
     }
+    println("user dict changed: $count")
     println("occur size: ${mapOccur.size}")
     println("all dict size: ${setAll.size}")
 }
