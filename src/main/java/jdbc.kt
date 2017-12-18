@@ -33,8 +33,9 @@ fun main(args: Array<String>) {
 //    itemWrite()
 //    prepareDict()
 //    countDictUsed()
-    modeDetection()
+//    modeDetection()
 //    termOmmit()
+    modelPOSSeq()
 }
 
 //识别术语可能存在的词性序列模式
@@ -86,6 +87,38 @@ fun modeDetection() {
             }
         }
         set.forEach { File("D:/term/dirDictSeq/$termName.txt").appendText("$it\n") }
+    }
+}
+
+//将术语的词性序列模式总结并添加到文件当中
+fun modelPOSSeq() {
+    val dir = File("D:/term/dirDictSeq")
+    val map = mutableMapOf<String, Int>()
+    val posDir = File("D:/term/posDir")
+    posDir.deleteRecursively()
+    posDir.mkdir()
+    dir.listFiles().forEach {
+        it.forEachLine { line ->
+            val line1 = line.replace("[","").replace("]","")
+            val sb = StringBuilder("")
+            line1.split(", ").forEachIndexed { index, s ->
+                if(index % 2 == 1) {
+                    sb.append("_$s")
+                }
+            }
+            File("D:/term/posDir/$sb.txt").appendText("$line.s\n")
+            map.put(sb.toString(), map.getOrDefault(sb.toString(), 0) + 1)
+        }
+    }
+    val file = File("D:/term/modelSeq.txt")
+    file.delete()
+    file.createNewFile()
+    val set = map.entries.sortedByDescending { it.value }
+    val totalSum = set.sumBy { it.value }
+    var sum = 0
+    set.forEach {
+        sum += it.value
+        file.appendText("${it.key.substring(1)} ${it.value} ${100 * sum / totalSum}%\n")
     }
 }
 
