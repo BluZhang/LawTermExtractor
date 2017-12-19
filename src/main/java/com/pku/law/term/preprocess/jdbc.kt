@@ -1,11 +1,11 @@
+package com.pku.law.term.preprocess
+
 import net.sf.json.JSONArray
 import net.sf.json.JSONObject
 import java.io.File
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.ResultSet
-import java.util.*
-import kotlin.collections.ArrayList
 
 //达梦数据库基本参数及配置
 const val driver = "dm.jdbc.driver.DmDriver"
@@ -35,10 +35,10 @@ fun main(args: Array<String>) {
 //    countDictUsed()
 //    modeDetection()
 //    termOmmit()
-//    modelPOSSeq()
-//    createTransferMap()
+    modelPOSSeq()
+    createTransferMap()
 //    modeFilter()
-    findUnformattedPOSSeq()
+//    findUnformattedPOSSeq()
 }
 
 
@@ -61,8 +61,8 @@ fun modeFilter() {
             it.writeText(resJsonObj.toString())
         }
     }
-    filter(File("D:/term/$dictDir"))
-    filter(File("D:/term/$noDictDir"))
+    filter(File("D:/term/${dictDir}"))
+    filter(File("D:/term/${noDictDir}"))
     posSeqFormat()
 }
 
@@ -142,7 +142,7 @@ fun modelPOSSeq() {
     file.delete()
     file.createNewFile()
     val set = map.entries.sortedByDescending { it.value }
-    set.sortedBy { it.key }.forEach {
+    set.sortedByDescending { it.value }.forEach {
         file.appendText("${it.key.substring(1)}\t${it.value}\n")
     }
 }
@@ -223,7 +223,7 @@ fun findUnformattedPOSSeq() {
 
 //查找用户词典中被使用过的用户词
 fun countDictUsed() {
-    val dir = File("D:/term/$dictDir")
+    val dir = File("D:/term/${dictDir}")
     val fileList = dir.listFiles()
     //存储用户词典使得分词效果发生了改变的词条数量
     var count = 0
@@ -231,8 +231,8 @@ fun countDictUsed() {
     File(dirDictChanged).deleteRecursively()
     File(dirDictChanged).mkdir()
     for(i in 1..fileList.size) {
-        val file1 = File("D:/term/$dictDir/$i.txt")
-        val file2 = File("D:/term/$noDictDir/$i.txt")
+        val file1 = File("D:/term/${dictDir}/$i.txt")
+        val file2 = File("D:/term/${noDictDir}/$i.txt")
         println(file1.absolutePath)
         val jsonObj1 = JSONObject.fromObject(file1.readText())
         val jsonObj2 = JSONObject.fromObject(file2.readText())
@@ -356,19 +356,23 @@ fun itemWrite() {
 var head: Node = Node("start", mutableMapOf<String, Node>())
 
 //创建术语序列的状态转移图
-fun createTransferMap() {
+fun createTransferMap(): Node {
     File("D:/term/modelSeqSorted.txt").forEachLine {
         val splits = it.split("\t")
         var node = head
         splits[0].split("_").forEach { it1 ->
-            node.childrenMap.put(it1, node.childrenMap.getOrDefault(it1, Node(it1, mutableMapOf<String, Node>())))
-            node = node.childrenMap.get(it1)!!
+            //词性标注必须为非空
+            if(it1.isNotBlank()) {
+                node.childrenMap.put(it1, node.childrenMap.getOrDefault(it1, Node(it1, mutableMapOf<String, Node>())))
+                node = node.childrenMap.get(it1)!!
+            }
         }
         node.endNum = splits[1].toInt()
     }
     backIterNode(head)
     println(head.totalSubNum)
     posSeqToGraphVizFile()
+    return head
 }
 
 // 后向遍历术语的词性标注树，并更新树节点的totalSubNum属性。
@@ -396,7 +400,7 @@ fun posSeqToGraphVizFile() {
         node.childrenMap.values.forEach { addToGraphVizStr(it) }
     }
     head.childrenMap.values.forEach { addToGraphVizStr(it) }
-//    addToGraphVizStr(head)
+//    addToGraphVizStr(com.pku.law.preprocess.getHead)
     map.keys.filter { it.str != "start" }.forEach { sb.append("${map.get(it)} [label=\"${it.str}\"]\n") }
     sb.append("}\n")
     File("D:/term/pos.dot").writeText(sb.toString())
