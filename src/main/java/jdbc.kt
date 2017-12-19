@@ -36,7 +36,34 @@ fun main(args: Array<String>) {
 //    modeDetection()
 //    termOmmit()
 //    modelPOSSeq()
-    createTransferMap()
+//    createTransferMap()
+//    modeFilter()
+    findUnformattedPOSSeq()
+}
+
+
+fun modeFilter() {
+    fun filter(file: File) {
+        file.listFiles().forEach {
+            val jsonArr = JSONObject.fromObject(it.readText()).getJSONArray("arr")
+            val resJsonObj = JSONObject()
+            val resJsonArr = JSONArray()
+            for(j in 0..(jsonArr.size - 1)) {
+                val jsonObj = jsonArr.getJSONObject(j)
+                if(jsonObj.toString().contains(""","w","─","w","─"""") ||
+                        jsonObj.toString().contains(""","w","_","w","_"""")) {
+                    println(it.canonicalPath)
+                    continue
+                }
+                resJsonArr.add(jsonObj)
+            }
+            resJsonObj.put("arr", resJsonArr)
+            it.writeText(resJsonObj.toString())
+        }
+    }
+    filter(File("D:/term/$dictDir"))
+    filter(File("D:/term/$noDictDir"))
+    posSeqFormat()
 }
 
 //识别术语可能存在的词性序列模式
@@ -100,7 +127,7 @@ fun modelPOSSeq() {
     posDir.mkdir()
     dir.listFiles().forEach {
         it.forEachLine { line ->
-            val line1 = line.replace("[","").replace("]","")
+            val line1 = line.substring(1, line.length - 1)
             val sb = StringBuilder("")
             line1.split(", ").forEachIndexed { index, s ->
                 if(index % 2 == 1) {
@@ -134,6 +161,64 @@ fun termOmmit() {
     beforeArrList.removeAll(afterArrList)
     beforeArrList.forEach { println(it) }
 
+}
+
+fun posSeqFormat() {
+    fun unfomatted(str: String) {
+        File("D:/term/$str").listFiles().forEach {
+            println(it.canonicalPath)
+            it.writeText(it.readText().replace(" ","").replace("\t","").replace("　","").replace(",\",,\"",",")
+                    .replace(""","m","w"""",""","m"""").replace("\"q\",\"w\"","\"q\"")
+                    .replace(""","GB","T17775"""",""","GBT177775"""").replace(",\"\\n\"","").replace(",\"\n\"","")
+                    .replace(""","\r"""","""""").replace(",\"\r\"","").replace("\"\",","")
+                    .replace(""","",""""",""",""""").replace(""","[","]"""",""","[]"""")
+                    .replace(""","\"wyy"""","").replace(""","DB31","T398"""",""","DB31T398"""").replace(""","GB"""","""""")
+                    .replace(""","大卡","小时"""",""","大卡/小时"""").replace(""","qv","w"""",""","qv"""")
+                    .replace(""","\r<","wkz","wp","tbl","n"""","").replace(""","米","秒"""",""","米/秒"""")
+                    .replace(""","wkz","n"""",""","wkz"""").replace(""","DBJ41","062-2005"""",""","DBJ41062-2005"""").replace(""","DBJ41","062"""",""","DBJ41062"""").replace(",\"\"","")
+                    .replace(""","wkz","xu"""",""","wkz"""").replace(""","wky","xu"""",""","wky"""")
+                    .replace(""","v","\"wyz"""",""","v"""").replace(""","\"wyz"""",""))
+        }
+    }
+    unfomatted(dictDir)
+    unfomatted(noDictDir)
+}
+
+//寻找不合乎规范的标记序列文件
+fun findUnformattedPOSSeq() {
+    val regex = "[a-zA-Z][0-9a-zA-Z_]*".toRegex()
+    fun unformatted(str: String) {
+        File("D:/term/errorPOS$str.txt").delete()
+        File("D:/term/$str").listFiles().forEach {
+            println(it.canonicalPath)
+            val jsonArr = JSONObject.fromObject(it.readText()).getJSONArray("arr")
+            for(j in 0..(jsonArr.size - 1)) {
+                val jsonObj = jsonArr.getJSONObject(j)
+                var id = 1
+                jsonObj.keys().forEach { id = it.toString().toInt() }
+                val jsonArr1 = jsonObj.getJSONArray("$id")
+                var flag = false
+                var inde = 0
+                var st = ""
+                if(jsonArr1.toString().contains(""","w","─","w","─"""") ||
+                        jsonArr1.toString().contains(""","w","_","w","_"""") ||
+                        jsonArr1.toString().contains("""http:""")) {
+                    continue
+                }
+                jsonArr1.toString().substring(1, jsonArr1.toString().length - 1).replace(",\",\",",",\"&\",").split(",").forEachIndexed { index, s ->
+                    if(index % 2 == 1 &&
+                            !regex.matches(s.replace("\"","")) && s.replace("\"","").isNotBlank()) {
+                        flag = true
+                        inde = index
+                        st = s
+                    }
+                }
+                if(flag) { File("D:/term/errorPOS$str.txt").appendText("${it.name} -> $id -> $inde -> $st\n") }
+            }
+        }
+    }
+    unformatted(dictDir)
+    unformatted(noDictDir)
 }
 
 //查找用户词典中被使用过的用户词
@@ -283,13 +368,38 @@ fun createTransferMap() {
     }
     backIterNode(head)
     println(head.totalSubNum)
+    posSeqToGraphVizFile()
 }
 
+// 后向遍历术语的词性标注树，并更新树节点的totalSubNum属性。
 fun backIterNode(node: Node) {
     node.childrenMap.forEach { key, value ->
         backIterNode(value)
     }
     node.totalSubNum = node.endNum + node.childrenMap.values.sumBy { it.totalSubNum }
+}
+
+
+//将术语列表的术语的词性序列生成graphviz的dot文件
+fun posSeqToGraphVizFile() {
+    val map = mutableMapOf<Node, String>()
+    map.put(head, "n0")
+    var index = 1
+    fun preIterNode(node: Node) {
+        node.childrenMap.values.forEach { map.put(it, "n${index++}") }
+        node.childrenMap.values.forEach { preIterNode(it)}
+    }
+    preIterNode(head)
+    val sb = StringBuilder("digraph G{\n")
+    fun addToGraphVizStr(node: Node) {
+        node.childrenMap.values.forEach { sb.append("${map.get(node)} -> ${map.get(it)} [label=\"${it.totalSubNum}\"]\n") }
+        node.childrenMap.values.forEach { addToGraphVizStr(it) }
+    }
+    head.childrenMap.values.forEach { addToGraphVizStr(it) }
+//    addToGraphVizStr(head)
+    map.keys.filter { it.str != "start" }.forEach { sb.append("${map.get(it)} [label=\"${it.str}\"]\n") }
+    sb.append("}\n")
+    File("D:/term/pos.dot").writeText(sb.toString())
 }
 
 //创建数据库连接
