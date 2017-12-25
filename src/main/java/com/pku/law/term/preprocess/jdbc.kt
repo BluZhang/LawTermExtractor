@@ -134,7 +134,7 @@ fun modelPOSSeq() {
                     sb.append("_$s")
                 }
             }
-            File("D:/term/posDir/${sb.toString().substring(1)}.txt").appendText("$line.s\n")
+            File("D:/term/posDir/${sb.toString().substring(1)}.txt").appendText("$line\n")
             map.put(sb.toString(), map.getOrDefault(sb.toString(), 0) + 1)
         }
     }

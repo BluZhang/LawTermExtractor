@@ -2,7 +2,9 @@ package com.pku.law.term.filter
 
 import com.pku.law.term.preprocess.*
 import net.sf.json.JSONObject
+import java.io.BufferedWriter
 import java.io.File
+import java.io.FileWriter
 
 /**
  * Created by serc1730 on 2017/12/19.
@@ -45,5 +47,12 @@ fun main(args: Array<String>) {
     val resList = map.entries.sortedByDescending { it.value.second }.map { it.value }
     val resList1 = map.entries.sortedBy { it.value.second }.map { it.value }
     println(map.get("机动车驾驶证"))
-    println(map)
+    val outFile = File("D:/term/candidates.txt")
+    outFile.delete()
+    outFile.createNewFile()
+    val writer = BufferedWriter(FileWriter(outFile))
+    map.toList().sortedByDescending { it.second.second }.forEach {
+        writer.write("${it.first}  ${it.second.first}  ${it.second.second}\n")
+    }
+    writer.close()
 }
