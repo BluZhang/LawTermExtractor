@@ -363,7 +363,7 @@ fun createTransferMap(): Node {
         splits[0].split("_").forEach { it1 ->
             //词性标注必须为非空
             if(it1.isNotBlank()) {
-                node.childrenMap.put(it1, node.childrenMap.getOrDefault(it1, Node(it1, mutableMapOf<String, Node>())))
+                node.childrenMap.put(it1, node.childrenMap.getOrDefault(it1, Node(it1, mutableMapOf<String, Node>(),0,0,"${node.append}_$it1")))
                 node = node.childrenMap.get(it1)!!
             }
         }
@@ -417,4 +417,4 @@ fun createConnection(): Unit {
  * endNum：表示以该节点结束的词性序列的数量
  * totalSubNum：表示以该节点以及该节点的子节点等所有词性序列的数量总数
  */
-class Node(val str: String, val childrenMap: MutableMap<String, Node>, var endNum: Int = 0, var totalSubNum: Int = 0)
+class Node(val str: String, val childrenMap: MutableMap<String, Node>, var endNum: Int = 0, var totalSubNum: Int = 0, var append: String = "")
