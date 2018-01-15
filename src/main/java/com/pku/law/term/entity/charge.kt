@@ -37,6 +37,10 @@ fun countDictUsed(): Unit  {
     val fileList = dir.listFiles()
     //存储用户词典使得分词效果发生了改变的词条数量
     var count = 0
+    val chargeFile = File("D:/term/charge.txt")
+    chargeFile.delete()
+    chargeFile.createNewFile()
+    val chargeWriter = BufferedWriter(FileWriter(chargeFile))
     for(i in 1..fileList.size) {
         val file1 = File("D:/term/dict/$i.txt")
 //        println(file1.absolutePath)
@@ -52,10 +56,16 @@ fun countDictUsed(): Unit  {
                     .replace("之罪","").replace("论罪","").replace("轻罪","").replace("重罪","").replace("罪行","").replace("定罪","")
             if(term.contains("罪")) {
                 var bool = false
-                chargeMap.keys.forEach { it1 ->  if(term.contains(it1)) { bool = true; chargeMap.put(it1, chargeMap.get(it1)!! + 1) } }
+                chargeMap.keys.forEach { it1 ->
+                    if(term.contains(it1)) {
+                        chargeWriter.write("$it1^$jsonArr12\r\n")
+                        bool = true; chargeMap.put(it1, chargeMap.get(it1)!! + 1)
+                    }
+                }
             }
         }
     }
+    chargeWriter.close()
     println(chargeMap.size)
     val outFile = File("D:/term/chargeUsed.txt")
     outFile.delete()
