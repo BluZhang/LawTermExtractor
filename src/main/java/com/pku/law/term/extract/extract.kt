@@ -11,7 +11,6 @@ import java.io.FileWriter
 val set = mutableSetOf<String>()
 
 fun main(args: Array<String>) {
-    fileMerge()
 //    modelWriter("n_n")
 //    modelWriter("vn_n")
 //    modelWriter("n_n_n")
@@ -50,15 +49,3 @@ fun modelWriter(model: String) {
     writer.close()
 }
 
-fun fileMerge() {
-    File("D:/term/term").listFiles().forEach { file ->
-        file.forEachLine { line ->
-            if(line.isNotBlank() && line.matches("[\u4e00-\u9fa5]+".toRegex())) {
-                set.add(line)
-            }
-        }
-    }
-    val writer = BufferedWriter(FileWriter(File("D:/term/termExtracted.txt")))
-    set.forEach { writer.write("$it\r\n") }
-    writer.close()
-}

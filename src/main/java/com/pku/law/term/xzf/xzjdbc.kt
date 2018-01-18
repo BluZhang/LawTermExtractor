@@ -29,18 +29,17 @@ fun main(args: Array<String>) {
 //    itemWrite()
     lawNameTypeInit()
     lawItemWrite()
-//    lawNameChange()
 }
 
 fun lawNameTypeInit() {
-//    File("D:/xzf/44.txt").forEachLine { if(it.isNotBlank()) { val splits = it.split("\t"); lawIdMap.put(splits[0].toInt(), splits[1]) } }
-    File("D:/xzf/45.txt").forEachLine { if(it.isNotBlank()) { val splits = it.split("\t"); lawIdMap.put(splits[0].toInt(), splits[1]) } }
+    File("D:/xzf/44.txt").forEachLine { if(it.isNotBlank()) { val splits = it.split("\t"); lawIdMap.put(splits[0].toInt(), splits[1]) } }
+//    File("D:/xzf/45.txt").forEachLine { if(it.isNotBlank()) { val splits = it.split("\t"); lawIdMap.put(splits[0].toInt(), splits[1]) } }
 }
 
 //将数据库查询结果写入到文件当中。type用于标识，加入用户词典后的结果和未加入用户词典的结果在不同的文件目录之下。
 fun lawNameTypeAddToFile(rs: ResultSet, type: String) {
     val forbit = listOf("意见", "命令", "决定", "目录", "批复", "复函", "通知",
-            "草案", "暂行规定", "国务院令第", "废止", "修改", "决议", "补充规定")
+            "草案", "暂行规定", "国务院令第", "废止", "修改", "决议", "补充规定", "修正")
     val permit = listOf("条例", "办法", "规定", "细则", "法", "法（")
     val dir = "D:/xzf/$type"
     if(!File("$dir/44").exists()) File("$dir/44").mkdirs()
@@ -74,16 +73,6 @@ fun createConnection(): Unit {
     conn = DriverManager.getConnection(url, username, password)
 }
 
-fun lawNameChange() {
-    val set44 = mutableSetOf<String>()
-    File("D:/xzf/44.txt").forEachLine { if(!it.contains("修正")) { set44.add(it) } }
-    File("D:/xzf/44.txt").delete()
-    File("D:/xzf/44.txt").writeText(set44.joinToString("\r\n","",""))
-    val set45 = mutableSetOf<String>()
-    File("D:/xzf/45.txt").forEachLine { if(!it.contains("修正")) { set45.add(it) } }
-    File("D:/xzf/45.txt").delete()
-    File("D:/xzf/45.txt").writeText(set45.joinToString("\r\n","",""))
-}
 
 //从数据库中读取法律法规id、名称及对应分类
 fun itemWrite() {
@@ -106,10 +95,10 @@ fun lawItemWrite() {
     val pstmt1 = conn!!.prepareStatement(lawItemSql)
     val rs1 = pstmt1.executeQuery()
     if(!File("D:/xzf").exists()) File("D:/xzf").mkdir()
-//    if(!File("D:/xzf/44").exists()) File("D:/xzf/44").mkdir()
-    if(!File("D:/xzf/45").exists()) File("D:/xzf/45").mkdir()
+    if(!File("D:/xzf/44").exists()) File("D:/xzf/44").mkdir()
+//    if(!File("D:/xzf/45").exists()) File("D:/xzf/45").mkdir()
     //将加入用户词典之后的分词结果，写入文件当中
-    lawItemAddToFile(rs1, "45")
+    lawItemAddToFile(rs1, "44")
     rs1.close()
     pstmt1.close()
     //关闭数据库连接
@@ -123,7 +112,7 @@ fun lawItemAddToFile(rs: ResultSet, type: String) {
         val lawId = rs.getInt("LAWID")
         val content = rs.getString("CONTENT")
         if(lawIdMap.keys.contains(lawId)) {
-            if(!writerMap.keys.contains(lawId.toString())) { writerMap.put(lawId.toString(), BufferedWriter(FileWriter(File("D:/xzf/$type/${lawIdMap.get(lawId)}.txt")))) }
+            if(!writerMap.keys.contains(lawId.toString())) { writerMap.put(lawId.toString(), BufferedWriter(FileWriter(File("D:/xzf/$type/${"" + lawId + "_" + lawIdMap.get(lawId)}.txt")))) }
             writerMap.get(lawId.toString())!!.write("$id^^${String(Base64.getEncoder().encode(content.toByteArray(Charset.forName("UTF-8"))), Charset.forName("UTF-8"))}\r\n")
         }
     }
