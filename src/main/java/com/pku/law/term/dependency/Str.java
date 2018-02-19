@@ -1,8 +1,8 @@
 package com.pku.law.term.dependency;
 
 public class Str {
-    public static String wordSplits = "中华人民共和国全国人民代表大会^^n^$是^^v^$最高国家权力机关^^n";
-    public static String dependency = "1^^2^^SBV^$2^^0^^HED^$3^^2^^VOB ";
+    public static String wordSplits = "有^^v^$下列^^b^$行为^^n^$之一^^r^$的^^u^$单位^^n^$或^^c^$个人^^n^$，^^wp^$由^^p^$公安^^n^$机关^^n^$交通^^n^$管理^^v^$部门^^n^$处^^v^$二百^^m^$元^^q^$以上^^nd^$两千^^m^$元^^q^$以下^^nd^$罚款^^n^$。^^wp";
+    public static String dependency = "1^^0^^HED^$2^^3^^ATT^$3^^4^^ATT^$4^^6^^ATT^$5^^4^^RAD^$6^^1^^VOB^$7^^8^^LAD^$8^^6^^COO^$9^^1^^WP^$10^^16^^ADV^$11^^12^^ATT^$12^^15^^ATT^$13^^14^^FOB^$14^^15^^ATT^$15^^10^^POB^$16^^1^^COO^$17^^18^^ATT^$18^^19^^ATT^$19^^23^^ATT^$20^^21^^ATT^$21^^22^^ATT^$22^^23^^ATT^$23^^16^^VOB^$24^^1^^WP";
 
 //    public static String wordSplits = "驾驶^^v^$非机动车^^n^$有^^v^$下列^^b^$情形^^n^$之一^^r^$的^^u^$，^^wp^$处^^v^$20^^m^$元^^q^$罚款^^n^$：^^wp^$（^^wp^$一^^m^$）^^wp^$逆向^^d^$行驶^^v^$的^^u^$；^^wp";
 //    public static String dependency = "1^^3^^SBV^$2^^1^^VOB^$3^^0^^HED^$4^^5^^ATT^$5^^6^^ATT^$6^^3^^VOB^$7^^3^^RAD^$8^^3^^WP^$9^^3^^COO^$10^^11^^ATT^$11^^12^^ATT^$12^^9^^VOB^$13^^9^^WP^$14^^15^^WP^$15^^18^^ADV^$16^^15^^WP^$17^^18^^ADV^$18^^9^^COO^$19^^18^^RAD^$20^^3^^WP";
